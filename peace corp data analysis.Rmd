@@ -1,0 +1,147 @@
+---
+title: "Peace Corps Data Analysis"
+author: "Tivas Gupta"
+date: "4/25/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(gt)
+library(readxl)
+
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+
+survey <- read_csv("Peace Corps_April 25, 2020_14.08.csv") %>%
+  select(Q82, Q81, Q43, Q42, Q41, Q36, Q29TITOYW, Q28)
+
+View(survey)
+
+```
+
+## Overview
+
+This data is difficult to perform regressions or more predictive analysis on because we have nothing to compare the Peace Corp effect to. We could do regressions or determine causal effects if we had the data of similar people not in the Peace Corps. Even if we had the length of time one spent in the Peace Corp program, we could see if there are marginal effects between volunteers.
+
+## Visual Analysis
+
+```{r, Q82}
+
+survey <- mutate(survey, id = rownames(survey))
+#survey
+#Need row numbers for labels later
+
+NAs <- survey %>%
+  filter(is.na(Q82)) %>%
+  nrow()
+
+survey1 <- survey %>%
+  filter(!is.na(Q82))
+
+survey1 <- survey1[-2, ]
+
+survey1 <- survey1[-1,]
+
+#There probably is a better way to do this, but it is slipping my mind at the
+#moment. Just trying to temporarily get rid of the first two rows of the
+#dataset.
+
+survey1$Q82<- factor(survey1$Q82,
+                       levels = c("$0 - $25,000", 
+                                  "$25,001 - $75,000", 
+                                  "$75,000 - $150,000", 
+                                  "$150,000 - $250,000"))
+
+ggplot(survey1, aes(x = Q82)) + geom_bar(fill="steel blue") + geom_text(stat='count', aes(label=..count..), vjust=-.5) + labs(title = "Question 82 - In what range is your current annual salary?", 
+                                                                                                          subtitle =  "Answers from a IOP Economic Policy Team Survey of former Peace Corp Members in MA") + ylab("Number of Former Peace Corp Members") + xlab("Salary range") + theme_classic()
+
+  
+```
+
+The above barplot shows the frequency of each salary range. We see that the $25,000 to $75,000 range is the most frequent, folowed by the $0-$25,000, $75,000 - $150,000, and finally the $150,000 - $250,000 range. `r NAs` people who filled out this survey chose not to answer this question.
+
+```{r, Q81}
+
+NA_81_s <- survey %>%
+  filter(is.na(Q81)) %>%
+  nrow()
+
+survey2 <- survey %>%
+  filter(!is.na(Q82))
+
+survey2 <- survey2[-2, ]
+
+survey2 <- survey2[-1,]
+
+survey2$Q81<- factor(survey1$Q81,
+                       levels = c("Lowest", 
+                                  "Lower middle class", 
+                                  "Middle class", 
+                                  "Upper middle class"))
+
+
+ggplot(survey2, aes(x = Q81)) + geom_bar(fill = "red4") +
+                                geom_text(stat='count', aes(label=..count..), hjust= -.5) + 
+  labs(title = "Question 81 - What is your current socioeconomic status?", 
+                                                                                                          subtitle =  "Answers from a IOP Economic Policy Team Survey of former Peace Corp Members in MA") + ylab("Number of Former Peace Corp Members") + xlab("Self-Identified Social Class") + theme_classic() + coord_flip() 
+
+  
+```
+
+The barplot shows the number of Peace Corp volunteers that identified in each social class. The most common self-identification was "Middle Class", followed by "Upper middle class", "Lower middle class", and finally "Lowest". `r NA_81_s` people chose not to answer this question.
+
+```{r, Q43 and Q29, message=FALSE, warning=FALSE}
+
+#survey <- mutate(survey, id = rownames(survey))
+#survey
+#Need row numbers for labels later
+#Wait tbh we didn't haha nvm
+
+NAs <- survey %>%
+  filter(is.na(Q43)) %>%
+  nrow()
+
+survey3 <- survey %>%
+  filter(!is.na(Q43))
+
+survey3 <- survey3[-2, ]
+
+survey3 <- survey3[-1,]
+
+#There probably is a better way to do this, but it is slipping my mind at the
+#moment. Just trying to temporarily get rid of the first two rows of the
+#dataset.
+
+survey3 <- survey3 %>%
+  mutate(Q29TITOYW = ifelse(((Q29TITOYW == "Nonprofit") | 
+                             (Q29TITOYW == "Nonprofit,Other (please specficy)")),
+                            "Nonprofit",
+                            (ifelse((Q29TITOYW == "Federal government" |
+                                    Q29TITOYW == "State and local government" |
+                                    Q29TITOYW == "Educational services,State and local government,Nonprofit"),
+                                   "Government",
+                          (ifelse((Q29TITOYW == "Professional and business services,Leisure and hospitality"),
+                                   "Hospitatlity",
+                                  Q29TITOYW))))))
+survey3$Q43<- factor(survey3$Q43,
+                       levels = c("Somewhat disagree", 
+                                  "Neither agree nor disagree", 
+                                  "Somewhat agree", 
+                                  "Strongly agree"))
+
+ggplot(survey3, aes(x = Q43, fill= Q41)) + geom_histogram(stat = "count") + labs(title = "Question 43 - My job has a positive impact \non my immediate community.",
+subtitle =  "Colors are based on the reported happpiness of Peace Corp Volunters") + ylab("Number of Former Peace Corp Members") + xlab("Level of Agreement") + theme_classic() + scale_x_discrete(guide = guide_axis(n.dodge = 2)) + guides(fill=guide_legend(title="Agree or Disagree: \nI am happy with my current job."))
+
+
+
+```
+
+On this graph we see how Peace Corp Volunteers thought their current jobs had a positive impact on their immediate community. The graphs show that most fomer volunteers thought their current job had a positive impact on their immediate community. Visually, it would also appear that those who were happiest in their jobs believed their work was impacting their immediate community.
